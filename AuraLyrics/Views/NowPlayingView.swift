@@ -88,7 +88,7 @@ struct NowPlayingView: View {
         }
     }
 
-    // MARK: - Tombol Terjemahan (Dengan Animasi)
+    // MARK: - Tombol Terjemahan (Dengan Animasi Tapi Tanpa Warna Merah)
     private var translateButton: some View {
         let buttonDiameter: CGFloat = 40
         let isTranslating = monitor.isTranslatingLyrics
@@ -118,19 +118,13 @@ struct NowPlayingView: View {
                 }
             }
             .frame(width: buttonDiameter, height: buttonDiameter)
-            .liquidGlassCircle(isActive: enableAutoTranslation, activeTint: .pink)
+            // PERUBAHAN: isActive diset false agar tidak ada warna merah/pink di background
+            .liquidGlassCircle(isActive: false) 
             .contentShape(Circle())
-            .overlay(
-                // Efek gelombang (pulse) di sekeliling tombol saat menerjemahkan
-                Circle()
-                    .stroke(Color.pink, lineWidth: 2)
-                    .scaleEffect(isTranslating ? 1.3 : 1.0)
-                    .opacity(isTranslating ? 0.0 : 1.0)
-                    .animation(isTranslating ? .easeOut(duration: 1).repeatForever(autoreverses: false) : .default, value: isTranslating)
-            )
+            // PERUBAHAN: Overlay (border merah berdenyut) dihapus total
         }
-        .buttonStyle(LiquidSpringButtonStyle(scaleAmount: 0.85)) // Tombol mengecil sedikit saat ditekan (efek spring)
-        .sensoryFeedback(.success, trigger: enableAutoTranslation) // Getaran saat tombol aktif
+        .buttonStyle(LiquidSpringButtonStyle(scaleAmount: 0.85)) 
+        .sensoryFeedback(.success, trigger: enableAutoTranslation) 
         .accessibilityLabel("Terjemahkan Lirik ke Indonesia")
     }
 
