@@ -121,7 +121,7 @@ struct LibraryView: View {
                                     Spacer()
                                 }
 
-                                Text(lyrics.artistName.isEmpty ? "未知歌手" : lyrics.artistName)
+                                Text(lyrics.artistName.isEmpty ? String(localized: "未知歌手") : lyrics.artistName)
                                     .font(.subheadline)
                                     .foregroundColor(.secondary)
                                     .lineLimit(1)
@@ -293,7 +293,7 @@ struct LibraryView: View {
                 let fileName = url.deletingPathExtension().lastPathComponent
                 let components = fileName.components(separatedBy: " - ")
                 let title = components.first ?? fileName
-                let artist = components.count > 1 ? components[1] : "本地匯入"
+                let artist = components.count > 1 ? components[1] : "Impor Lokal"
 
                 _ = LyricsProviderService.shared.importLocalLRCFile(
                     url: url,
@@ -321,7 +321,7 @@ private struct LyricsPreviewSheet: View {
                             .font(.title3)
                             .fontWeight(.bold)
 
-                        Text(lyrics.artistName.isEmpty ? "未知歌手" : lyrics.artistName)
+                        Text(lyrics.artistName.isEmpty ? String(localized: "未知歌手") : lyrics.artistName)
                             .font(.subheadline)
                             .foregroundColor(.secondary)
 
