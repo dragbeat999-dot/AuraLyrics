@@ -39,7 +39,7 @@ struct SettingsView: View {
                 } header: {
                     Text("Sumber Pemutar")
                 } footer: {
-                    Text("Pilih dari mana lagu diputar (Apple Music, Spotify, atau System untuk YouTube Music/SoundCloud).")
+                    Text("Pilih dari mana lagu diputar (Apple Music atau Spotify).")
                 }
 
                 // MARK: - 2. PICTURE IN PICTURE (PiP)
@@ -277,8 +277,7 @@ struct SettingsView: View {
                                 .foregroundColor(.pink)
                         }
                         Spacer()
-                        Text(appVersionString)
-                            .foregroundColor(.secondary)
+                        Text(appVersionString).foregroundColor(.secondary)
                     }
                     HStack {
                         Label {
@@ -300,8 +299,7 @@ struct SettingsView: View {
                                 .foregroundColor(.pink)
                         }
                         Spacer()
-                        Text("MPL-2.0")
-                            .foregroundColor(.secondary)
+                        Text("MPL-2.0").foregroundColor(.secondary)
                     }
                 } header: {
                     Text("Tentang AuraLyrics")
@@ -338,38 +336,31 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Helper: Nama Sumber Pemutar
     private var playbackSourceName: String {
         switch musicMonitor.playbackSource {
         case .appleMusic: return "Apple Music"
         case .spotify: return "Spotify"
-        case .system: return "System (YouTube Music, dll)"
         }
     }
 
-    // MARK: - Helper: Baris Diagnostik
     @ViewBuilder
     private func diagnosticRow(icon: String, title: String, value: String, color: Color) -> some View {
         HStack {
             Label {
                 Text(title)
             } icon: {
-                Image(systemName: icon)
-                    .foregroundColor(.pink)
+                Image(systemName: icon).foregroundColor(.pink)
             }
             Spacer()
             HStack(spacing: 5) {
                 Image(systemName: color == .green ? "checkmark.circle.fill" : "info.circle.fill")
                     .foregroundColor(color)
-                Text(value)
-                    .fontWeight(.medium)
-                    .foregroundColor(color)
+                Text(value).fontWeight(.medium).foregroundColor(color)
             }
             .font(.subheadline)
         }
     }
 
-    // MARK: - Fungsi Hapus Cache
     private func clearAllCache() {
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         LyricsProviderService.shared.clearAllCache()
@@ -381,7 +372,6 @@ struct SettingsView: View {
         }
     }
 
-    // MARK: - Versi Aplikasi
     private var appVersionString: String {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.9.0"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
