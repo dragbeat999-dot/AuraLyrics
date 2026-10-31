@@ -152,7 +152,7 @@ public struct LiveActivitySettingsView: View {
     }
 }
 
-// MARK: - 動態島樣式即時預覽元件
+// MARK: - 動態島樣式即時預覽元件 (DIPERBARUI: Full Lirik)
 private struct DynamicIslandCompactPreview: View {
     let style: DynamicIslandCompactStyle
     @ObservedObject private var monitor = AppleMusicMonitor.shared
@@ -170,7 +170,7 @@ private struct DynamicIslandCompactPreview: View {
 
     var body: some View {
         VStack(spacing: 0) {
-            HStack(spacing: 8) {
+            HStack(alignment: .center, spacing: 8) { // Ubah alignment jadi center
                 switch style {
                 case .artworkAndText:
                     if let artworkData = monitor.currentTrack.artworkData,
@@ -204,13 +204,16 @@ private struct DynamicIslandCompactPreview: View {
 
                 Spacer(minLength: 12)
 
+                // DIPERBARUI: Teks tidak lagi dipaksa 1 baris, tapi bisa turun ke bawah
                 Text(sampleLyric)
                     .font(.system(size: 12, weight: .semibold, design: .rounded))
                     .foregroundColor(.white)
-                    .lineLimit(1)
+                    .multilineTextAlignment(.trailing) // Rata kanan
+                    // Hapus .lineLimit(1) agar bisa full
             }
             .padding(.horizontal, 12)
-            .frame(height: 36)
+            .padding(.vertical, 10) // Padding vertikal agar teks tidak mentok atas/bawah
+            // Hapus .frame(height: 36) agar tinggi kotak menyesuaikan isi teks
             .background(Color.black)
             .clipShape(Capsule())
             .overlay(
