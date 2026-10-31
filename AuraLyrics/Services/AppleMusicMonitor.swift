@@ -688,7 +688,6 @@ public final class AppleMusicMonitor: ObservableObject {
         refreshCurrentLineIndex(forceSync: true)
     }
     
-    // MARK: - 翻譯功能
     public func translateCurrentLyrics() async {
         guard !isTranslatingLyrics else { return }
         isTranslatingLyrics = true
