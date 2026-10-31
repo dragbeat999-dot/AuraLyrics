@@ -17,6 +17,24 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
+                // MARK: - Sumber pemutar (Apple Music / Spotify)
+                Section {
+                    NavigationLink {
+                        SpotifySettingsView()
+                    } label: {
+                        HStack {
+                            Label("Sumber pemutar & Spotify", systemImage: "music.note.list")
+                            Spacer()
+                            Text(musicMonitor.playbackSource == .spotify ? "Spotify" : "Apple Music")
+                                .foregroundColor(.secondary)
+                        }
+                    }
+                } header: {
+                    Text("Sumber pemutar")
+                } footer: {
+                    Text("Pilih Apple Music atau Spotify sebagai sumber lagu yang liriknya ditampilkan.")
+                }
+
                 // MARK: - 子母畫面 (PiP) 實時預覽與開關
                 Section {
                     // 1:1 實時 PiP 預覽視窗卡
