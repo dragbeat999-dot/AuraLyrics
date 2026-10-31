@@ -93,7 +93,7 @@ struct LyricsSearchSheet: View {
                                         .foregroundColor(.primary)
                                         .lineLimit(1)
 
-                                    Text(lyrics.artistName.isEmpty ? "未知歌手" : lyrics.artistName)
+                                    Text(lyrics.artistName.isEmpty ? String(localized: "未知歌手") : lyrics.artistName)
                                         .font(.subheadline)
                                         .foregroundColor(.secondary)
                                         .lineLimit(1)
@@ -143,13 +143,13 @@ struct LyricsSearchSheet: View {
                             // 前兩行預覽
                             if let firstLine = lyrics.lines.first?.text, !firstLine.isEmpty {
                                 VStack(alignment: .leading, spacing: 2) {
-                                    Text("「\(firstLine)」")
+                                    Text("“\(firstLine)”")
                                         .font(.caption)
                                         .foregroundColor(.secondary.opacity(0.85))
                                         .lineLimit(1)
 
                                     if lyrics.lines.count > 1, let secondLine = lyrics.lines.dropFirst().first?.text, !secondLine.isEmpty {
-                                        Text("「\(secondLine)」")
+                                        Text("“\(secondLine)”")
                                             .font(.caption)
                                             .foregroundColor(.secondary.opacity(0.65))
                                             .lineLimit(1)
