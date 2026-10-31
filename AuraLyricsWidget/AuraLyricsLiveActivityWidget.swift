@@ -149,7 +149,7 @@ struct CompactTrailingView: View {
     }
 }
 
-// MARK: - 鎖定畫面歌詞視圖 (Liquid Glass 主題自適應)
+// MARK: - 鎖定畫面歌詞視圖 (Sangat Transparan)
 struct LockScreenLyricsView: View {
     let context: ActivityViewContext<LyricsActivityAttributes>
     @Environment(\.colorScheme) private var colorScheme
@@ -161,9 +161,6 @@ struct LockScreenLyricsView: View {
         let primaryText = isLight ? Color.black : Color.white
         let secondaryText = isLight ? Color(white: 0.35) : Color.white.opacity(0.68)
         let subtleText = isLight ? Color(white: 0.50) : Color.white.opacity(0.45)
-        
-        // Efek Kaca (Liquid Glass)
-        let glassTint = isLight ? Color.white.opacity(0.65) : Color.black.opacity(0.45)
 
         VStack(alignment: .leading, spacing: 6) {
             // 頂部歌曲資訊列
@@ -213,13 +210,8 @@ struct LockScreenLyricsView: View {
         .padding(.top, 12)
         .padding(.bottom, 10)
         .frame(maxWidth: .infinity, minHeight: 108, maxHeight: 108, alignment: .topLeading)
-        // Terapkan efek Liquid Glass transparan
-        .activityBackgroundTint(glassTint)
-        // Tambahkan garis tepi kaca yang tipis
-        .overlay(
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(isLight ? Color.white.opacity(0.5) : Color.white.opacity(0.15), lineWidth: 1)
-        )
+        // --- UBAHAN DI SINI: Membuat background transparan total ---
+        .activityBackgroundTint(Color.clear) // <-- Menggunakan transparan
         .activitySystemActionForegroundColor(isLight ? Color.black : Color.white)
     }
 }
