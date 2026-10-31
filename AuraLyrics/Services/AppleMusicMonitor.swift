@@ -468,6 +468,12 @@ public final class AppleMusicMonitor: ObservableObject {
         }
     }
 
+    // --- JEMBATAN KOMPATIBILITAS (Mencegah error di SpotifySettingsView.swift lama) ---
+    public func refreshSpotifyNow() {
+        refreshExternalNow()
+    }
+    // ---------------------------------------------------------------------------------
+
     // MARK: - TRIK KOTOR: System Polling (YouTube Music, dll)
     private func pollSystemOnce() async {
         guard playbackSource == .system else { return }
