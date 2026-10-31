@@ -17,6 +17,9 @@ struct NowPlayingView: View {
     @State private var showFileImporter = false
     @AppStorage("showBilingualLyrics") private var showTranslation = true
     @AppStorage("enableLyricDefocusBlur") private var enableLyricDefocusBlur = true
+    
+    // TOMBOL BARU: Menyimpan status tombol terjemahan (On/Off)
+    @AppStorage("enableAutoTranslation") private var enableAutoTranslation = false
 
     /// 零重繪之可視行索引追蹤器（參考型別，不觸發全視圖 body 刷新）
     @State private var tracker = ViewportTracker()
@@ -40,9 +43,9 @@ struct NowPlayingView: View {
                 // MARK: - 內容層：可滾動穿透之歌詞清單（置於純淨空間，絕不被底層背景干擾佈局尺寸）
                 lyricsScrollView
 
-                // MARK: - 內容頂層：右上角兩顆完全獨立放大的 Liquid Glass 圓形按鈕
-                // 擺脫系統 ToolbarItem 自動分組機制，徹底消除系統膠囊底襯，按鈕即為最底層！
+                // MARK: - 內容頂層：右上角三顆完全獨立放大的 Liquid Glass 圓形按鈕
                 HStack(spacing: 12) {
+                    translateButton // <--- TOMBOL TERJEMAHAN BARU
                     pipIndependentButton
                     moreMenuIndependentButton
                 }
@@ -83,6 +86,34 @@ struct NowPlayingView: View {
                 monitor.syncExternalEngines()
             }
         }
+    }
+
+    // MARK: - Tombol Terjemahan (Baru)
+    private var translateButton: some View {
+        let buttonDiameter: CGFloat = 40
+
+        return Button {
+            enableAutoTranslation.toggle()
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+            // Jika dinyalakan, langsung minta monitor untuk menerjemahkan
+            if enableAutoTranslation {
+                Task { 
+                    await monitor.translateCurrentLyrics() 
+                }
+            }
+        } label: {
+            ZStack {
+                // Ikon buku/karakter
+                Image(systemName: "character.book.closed.fill")
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(enableAutoTranslation ? .pink : .white)
+            }
+            .frame(width: buttonDiameter, height: buttonDiameter)
+            .liquidGlassCircle(isActive: enableAutoTranslation, activeTint: .pink)
+            .contentShape(Circle())
+        }
+        .buttonStyle(LiquidSpringButtonStyle(scaleAmount: 0.90))
+        .accessibilityLabel("Terjemahkan Lirik ke Indonesia")
     }
 
     // MARK: - 右上角獨立按鈕：子母畫面 (PiP，直徑 40pt，按鈕即為最底層)
