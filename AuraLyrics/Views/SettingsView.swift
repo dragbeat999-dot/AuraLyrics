@@ -22,20 +22,18 @@ struct SettingsView: View {
                     NavigationLink {
                         PlaybackSettingsView()
                     } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "music.note.tv")
-                                .foregroundColor(.white)
-                                .frame(width: 28, height: 28)
-                                .background(Color.pink)
-                                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-                            
+                        Label {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Sumber Pemutar")
                                     .font(.body)
+                                    .foregroundColor(.primary)
                                 Text(playbackSourceName)
                                     .font(.caption)
                                     .foregroundColor(.secondary)
                             }
+                        } icon: {
+                            Image(systemName: "music.note.tv")
+                                .foregroundColor(.pink)
                         }
                     }
                 } header: {
@@ -80,20 +78,18 @@ struct SettingsView: View {
                     NavigationLink {
                         LiveActivitySettingsView()
                     } label: {
-                        HStack(spacing: 12) {
-                            Image(systemName: "waveform.badge.magnifyingglass")
-                                .foregroundColor(.white)
-                                .frame(width: 28, height: 28)
-                                .background(Color.purple)
-                                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
-                            
+                        Label {
                             VStack(alignment: .leading, spacing: 2) {
                                 Text("Live Activity & Dynamic Island")
                                     .font(.body)
+                                    .foregroundColor(.primary)
                                 Text(LiveActivityLyricsEngine.shared.isEnabled ? "Aktif" : "Nonaktif")
                                     .font(.caption)
                                     .foregroundColor(LiveActivityLyricsEngine.shared.isEnabled ? .green : .secondary)
                             }
+                        } icon: {
+                            Image(systemName: "waveform.badge.magnifyingglass")
+                                .foregroundColor(.pink)
                         }
                     }
                 } header: {
@@ -111,7 +107,7 @@ struct SettingsView: View {
                             Text("Prioritas Pencarian Lirik")
                         } icon: {
                             Image(systemName: "arrow.up.arrow.down.square.fill")
-                                .foregroundColor(.orange)
+                                .foregroundColor(.pink)
                         }
                     }
                 } header: {
@@ -127,7 +123,7 @@ struct SettingsView: View {
                             Text("Efek Blur Lirik Non-Fokus")
                         } icon: {
                             Image(systemName: "wind")
-                                .foregroundColor(.blue)
+                                .foregroundColor(.pink)
                         }
                     }
                 } header: {
@@ -278,7 +274,7 @@ struct SettingsView: View {
                             Text("Versi Aplikasi")
                         } icon: {
                             Image(systemName: "info.circle.fill")
-                                .foregroundColor(.blue)
+                                .foregroundColor(.pink)
                         }
                         Spacer()
                         Text(appVersionString)
@@ -301,7 +297,7 @@ struct SettingsView: View {
                             Text("Lisensi")
                         } icon: {
                             Image(systemName: "doc.text.fill")
-                                .foregroundColor(.orange)
+                                .foregroundColor(.pink)
                         }
                         Spacer()
                         Text("MPL-2.0")
