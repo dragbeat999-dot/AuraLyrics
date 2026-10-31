@@ -7,10 +7,9 @@ import UIKit
 public enum PlaybackSource: String, CaseIterable {
     case appleMusic
     case spotify
-    case system // <--- INI YANG BIKIN ERROR KARENA TADI BELUM ADA
 }
 
-/// Apple Music 系統播放器監聽與即時時間軸推播器（已加入 Spotify & System 來源支援）
+/// Apple Music 系統播放器監聽與即時時間軸推播器（已加入 Spotify 來源支援）
 @MainActor
 public final class AppleMusicMonitor: ObservableObject {
     public static let shared = AppleMusicMonitor()
@@ -61,10 +60,9 @@ public final class AppleMusicMonitor: ObservableObject {
     private var lastPlaybackTimeSec: TimeInterval = 0.0
     private var lyricsFetchTask: Task<Void, Never>? = nil
 
-    // MARK: - Spotify & System Polling
-    private var externalPollTask: Task<Void, Never>? = nil
+    // MARK: - Spotify Polling
+    private var spotifyPollTask: Task<Void, Never>? = nil
     private var lastSpotifyTrackID: String = ""
-    private var lastSystemTrackID: String = ""
     private var spotifyBackoffSec: TimeInterval = 0
 
     private init() {
@@ -128,7 +126,7 @@ public final class AppleMusicMonitor: ObservableObject {
                     self.handleTrackChanged(force: true)
                     self.handlePlaybackStateChanged()
                 } else {
-                    self.refreshExternalNow()
+                    self.refreshSpotifyNow()
                 }
             }
         }
@@ -145,7 +143,7 @@ public final class AppleMusicMonitor: ObservableObject {
                     self.handleTrackChanged()
                     self.handlePlaybackStateChanged()
                 } else {
-                    self.refreshExternalNow()
+                    self.refreshSpotifyNow()
                 }
             }
         }
@@ -170,8 +168,8 @@ public final class AppleMusicMonitor: ObservableObject {
         source.resume()
         self.timerSource = source
 
-        if playbackSource != .appleMusic {
-            startExternalPolling()
+        if playbackSource == .spotify {
+            startSpotifyPolling()
         }
     }
 
@@ -182,8 +180,8 @@ public final class AppleMusicMonitor: ObservableObject {
 
     public func stopMonitoring() {
         stopTimer()
-        externalPollTask?.cancel()
-        externalPollTask = nil
+        spotifyPollTask?.cancel()
+        spotifyPollTask = nil
         lyricsFetchTask?.cancel()
         lyricsFetchTask = nil
         musicPlayer.endGeneratingPlaybackNotifications()
@@ -191,8 +189,8 @@ public final class AppleMusicMonitor: ObservableObject {
 
     // MARK: - Ganti sumber pemutar
     private func handleSourceChanged() {
-        externalPollTask?.cancel()
-        externalPollTask = nil
+        spotifyPollTask?.cancel()
+        spotifyPollTask = nil
         lyricsFetchTask?.cancel()
         lyricsFetchTask = nil
 
@@ -209,7 +207,6 @@ public final class AppleMusicMonitor: ObservableObject {
         lastPlaybackStoreID = ""
         lastPlaybackTimeSec = 0.0
         lastSpotifyTrackID = ""
-        lastSystemTrackID = ""
         spotifyBackoffSec = 0
         spotifyStatusMessage = nil
         syncExternalEngines()
@@ -220,7 +217,7 @@ public final class AppleMusicMonitor: ObservableObject {
             handleTrackChanged(force: true)
             handlePlaybackStateChanged()
         } else {
-            startExternalPolling()
+            startSpotifyPolling()
         }
     }
 
@@ -342,10 +339,6 @@ public final class AppleMusicMonitor: ObservableObject {
             tickSpotify()
             return
         }
-        if playbackSource == .system {
-            tickSystem()
-            return
-        }
 
         let now = CACurrentMediaTime()
         lastTickTimestamp = now
@@ -438,144 +431,33 @@ public final class AppleMusicMonitor: ObservableObject {
         refreshCurrentLineIndex()
     }
 
-    // MARK: - Polling untuk Spotify & System
-    private func startExternalPolling() {
-        externalPollTask?.cancel()
-        externalPollTask = Task { [weak self] in
+    // MARK: - Spotify Polling
+    private func startSpotifyPolling() {
+        spotifyPollTask?.cancel()
+        spotifyPollTask = Task { [weak self] in
             while !Task.isCancelled {
                 guard let self = self else { return }
-                
-                if self.playbackSource == .spotify {
-                    await self.pollSpotifyOnce()
-                } else if self.playbackSource == .system {
-                    await self.pollSystemOnce()
+                await self.pollSpotifyOnce()
+
+                var interval: TimeInterval = self.isPlaying ? 3.0 : 5.0
+                if self.isPlaying && self.currentTrack.duration > 0 {
+                    let remaining = self.currentTrack.duration - self.currentPlaybackTimeSec
+                    if remaining < 4.0 { interval = 1.0 }
                 }
-                
-                let isExternalPlaying = self.isPlaying
-                var interval: TimeInterval = isExternalPlaying ? 1.0 : 3.0
-                if self.spotifyBackoffSec > 0 && self.playbackSource == .spotify { interval = self.spotifyBackoffSec }
-                
+                if self.spotifyBackoffSec > 0 { interval = self.spotifyBackoffSec }
+
                 try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
             }
         }
     }
 
-    public func refreshExternalNow() {
-        guard playbackSource != .appleMusic else { return }
-        Task {
-            if playbackSource == .spotify { await pollSpotifyOnce() }
-            else if playbackSource == .system { await pollSystemOnce() }
-        }
-    }
-
-    // --- JEMBATAN KOMPATIBILITAS (Mencegah error di SpotifySettingsView.swift lama) ---
     public func refreshSpotifyNow() {
-        refreshExternalNow()
-    }
-    // ---------------------------------------------------------------------------------
-
-    // MARK: - TRIK KOTOR: System Polling (YouTube Music, dll)
-    private func pollSystemOnce() async {
-        guard playbackSource == .system else { return }
-        
-        guard let result = await SystemMediaMonitor.shared.fetchNowPlaying() else {
-            if isPlaying {
-                isPlaying = false
-                anchorPlaybackTimeSec = currentPlaybackTimeSec
-                anchorMediaTime = CACurrentMediaTime()
-                syncExternalEngines()
-                LiveActivityLyricsEngine.shared.handlePlaybackPaused()
-            }
-            return
-        }
-
-        let track = result.track
-        let elapsed = result.elapsed
-        let playing = result.isPlaying
-        let isNewTrack = (track.title != lastSystemTrackID)
-
-        let wasPlaying = isPlaying
-        isPlaying = playing
-
-        if isNewTrack {
-            lastSystemTrackID = track.title
-            handleSystemTrackChanged(track)
-        }
-
-        if playing {
-            if isNewTrack || !wasPlaying {
-                anchorPlaybackTimeSec = elapsed
-            } else {
-                let predicted = anchorPlaybackTimeSec + max(0, CACurrentMediaTime() - anchorMediaTime)
-                let diff = elapsed - predicted
-                if abs(diff) > 1.5 {
-                    anchorPlaybackTimeSec = elapsed
-                } else {
-                    anchorPlaybackTimeSec = predicted + diff * 0.25
-                }
-            }
-            anchorMediaTime = CACurrentMediaTime()
-            currentPlaybackTimeSec = anchorPlaybackTimeSec
-            
-            if track.duration > 0 {
-                playbackProgress = min(max(currentPlaybackTimeSec / track.duration, 0.0), 1.0)
-                PiPLyricsViewModel.shared.progress = playbackProgress
-            }
-
-            if !wasPlaying {
-                syncExternalEngines()
-                LiveActivityLyricsEngine.shared.handlePlaybackResumed(track: currentTrack)
-            }
-        } else {
-            let moved = abs(elapsed - currentPlaybackTimeSec) > 0.5
-            anchorPlaybackTimeSec = elapsed
-            anchorMediaTime = CACurrentMediaTime()
-            currentPlaybackTimeSec = elapsed
-
-            if wasPlaying || moved || isNewTrack {
-                refreshCurrentLineIndex(forceSync: true)
-                LiveActivityLyricsEngine.shared.handlePlaybackPaused()
-            }
+        guard playbackSource == .spotify else { return }
+        Task { [weak self] in
+            await self?.pollSpotifyOnce()
         }
     }
 
-    private func handleSystemTrackChanged(_ track: TrackInfo) {
-        currentTrack = track
-        currentLyrics = .empty
-        currentLineIndex = nil
-        playbackProgress = 0.0
-        syncExternalEngines()
-
-        lyricsFetchTask?.cancel()
-        lyricsFetchTask = Task { [weak self] in
-            guard let self = self else { return }
-            self.isLoadingLyrics = true
-            let fetched = await LyricsProviderService.shared.fetchLyrics(track: track)
-            guard !Task.isCancelled else { return }
-            self.currentLyrics = fetched ?? SyncedLyrics.empty
-            
-            if UserDefaults.standard.bool(forKey: "enableAutoTranslation") {
-                Task { @MainActor in await self.translateCurrentLyrics() }
-            }
-            
-            self.refreshCurrentLineIndex(forceSync: true)
-            self.isLoadingLyrics = false
-        }
-    }
-
-    private func tickSystem() {
-        let now = CACurrentMediaTime()
-        lastTickTimestamp = now
-        guard isPlaying else { return }
-        
-        var t = anchorPlaybackTimeSec + max(0, now - anchorMediaTime)
-        if currentTrack.duration > 0 { t = min(t, currentTrack.duration) }
-        currentPlaybackTimeSec = t
-        updatePlaybackProgress()
-        refreshCurrentLineIndex()
-    }
-
-    // MARK: - Spotify Polling
     private func pollSpotifyOnce() async {
         guard playbackSource == .spotify else { return }
         guard SpotifyAuthManager.shared.isLoggedIn else {
@@ -717,7 +599,6 @@ public final class AppleMusicMonitor: ObservableObject {
         return resized.pngData()
     }
 
-    /// 統一依據高精度插值時鐘重新計算當前歌詞行索引，並同步推播至各引擎
     private func refreshCurrentLineIndex(forceSync: Bool = false) {
         let accurateTimeMs = interpolatedPlaybackTimeMs()
         let newIndex = currentLyrics.currentLineIndex(at: accurateTimeMs, globalOffsetMs: 0)
