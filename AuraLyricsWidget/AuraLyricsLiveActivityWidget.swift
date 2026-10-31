@@ -14,7 +14,7 @@ public struct AuraLyricsLiveActivityWidget: Widget {
 
     public var body: some WidgetConfiguration {
         ActivityConfiguration(for: LyricsActivityAttributes.self) { context in
-            // 鎖定畫面與 StandBy 橫向模式視圖 (自適應深淺色模式，固定視窗尺寸，符合 HIG 14pt 標準邊距)
+            // 鎖定畫面與 StandBy 橫向模式視圖
             LockScreenLyricsView(context: context)
         } dynamicIsland: { context in
             DynamicIsland {
@@ -42,7 +42,7 @@ public struct AuraLyricsLiveActivityWidget: Widget {
 
                 DynamicIslandExpandedRegion(.bottom) {
                     VStack(alignment: .leading, spacing: 3) {
-                        // 主歌詞行 (向上頂掉上一句之過渡動效)
+                        // 主歌詞行
                         Text(context.isStale ? String(localized: "App 已暫停或關閉 · 點擊恢復同步") : context.state.currentLine)
                             .id(context.state.currentLine)
                             .font(.system(size: 16, weight: .bold, design: .rounded))
@@ -52,7 +52,7 @@ public struct AuraLyricsLiveActivityWidget: Widget {
                             .transition(.push(from: .bottom))
                             .animation(.spring(response: 0.35, dampingFraction: 0.8), value: context.state.currentLine)
 
-                        // 雙語翻譯或下一句預覽行 (緊隨主歌詞下方)
+                        // 雙語翻譯或下一句預覽行
                         if !context.isStale, let secondary = context.state.secondaryLine, !secondary.isEmpty {
                             Text(secondary)
                                 .id(secondary)
@@ -69,18 +69,15 @@ public struct AuraLyricsLiveActivityWidget: Widget {
                     .padding(.bottom, 6)
                 }
             } compactLeading: {
-                // 緊湊 Leading 視圖 (依設定支援封面縮圖或簡潔音符)
                 CompactLeadingView(
                     compactStyle: context.state.compactStyle,
                     artworkPath: context.state.artworkPath
                 )
             } compactTrailing: {
-                // 緊湊 Trailing 視圖 (向上推移動畫)
                 CompactTrailingView(
                     currentLine: context.isStale ? String(localized: "已暫停") : context.state.currentLine
                 )
             } minimal: {
-                // 極簡 Minimal 視圖
                 ArtworkOrIconView(artworkPath: context.state.artworkPath, size: 14)
             }
             .keylineTint(Color.pink.opacity(0.5))
@@ -152,20 +149,24 @@ struct CompactTrailingView: View {
     }
 }
 
-// MARK: - 鎖定畫面歌詞視圖 (支援深淺色自適應，絕對固定尺寸不隨歌詞跳動)
+// MARK: - 鎖定畫面歌詞視圖 (Liquid Glass 主題自適應)
 struct LockScreenLyricsView: View {
     let context: ActivityViewContext<LyricsActivityAttributes>
     @Environment(\.colorScheme) private var colorScheme
 
     var body: some View {
         let isLight = context.state.isLightMode || (colorScheme == .light)
+        
+        // Warna teks dinamis
         let primaryText = isLight ? Color.black : Color.white
         let secondaryText = isLight ? Color(white: 0.35) : Color.white.opacity(0.68)
         let subtleText = isLight ? Color(white: 0.50) : Color.white.opacity(0.45)
-        let backgroundTint: Color? = isLight ? Color.white : nil
+        
+        // Efek Kaca (Liquid Glass)
+        let glassTint = isLight ? Color.white.opacity(0.65) : Color.black.opacity(0.45)
 
         VStack(alignment: .leading, spacing: 6) {
-            // 頂部歌曲資訊列 (固定高 18pt)
+            // 頂部歌曲資訊列
             HStack(spacing: 8) {
                 ArtworkOrIconView(artworkPath: context.state.artworkPath, size: 18)
 
@@ -182,7 +183,7 @@ struct LockScreenLyricsView: View {
             }
             .frame(height: 18)
 
-            // 歌詞與次要行群組 (主歌詞與副行緊湊相連，不留空隙推擠到底部，自動適配深淺色)
+            // 歌詞區塊
             VStack(alignment: .leading, spacing: 4) {
                 Text(context.isStale ? String(localized: "App 已暫停或關閉 · 點擊開啟 AuraLyrics 恢復同步") : context.state.currentLine)
                     .id(context.state.currentLine)
@@ -212,8 +213,13 @@ struct LockScreenLyricsView: View {
         .padding(.top, 12)
         .padding(.bottom, 10)
         .frame(maxWidth: .infinity, minHeight: 108, maxHeight: 108, alignment: .topLeading)
-        .background(isLight ? Color.white : Color.clear)
-        .activityBackgroundTint(backgroundTint)
+        // Terapkan efek Liquid Glass transparan
+        .activityBackgroundTint(glassTint)
+        // Tambahkan garis tepi kaca yang tipis
+        .overlay(
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .stroke(isLight ? Color.white.opacity(0.5) : Color.white.opacity(0.15), lineWidth: 1)
+        )
         .activitySystemActionForegroundColor(isLight ? Color.black : Color.white)
     }
 }
