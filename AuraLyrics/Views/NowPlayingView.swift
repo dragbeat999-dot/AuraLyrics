@@ -186,7 +186,7 @@ struct NowPlayingView: View {
                             .foregroundColor(Color.white.opacity(0.45))
                             .accessibilityHidden(true)
 
-                        Text(monitor.isLoadingLyrics ? "正在檢索歌詞..." : "目前曲目無對應歌詞")
+                        Text(monitor.isLoadingLyrics ? String(localized: "正在檢索歌詞...") : String(localized: "目前曲目無對應歌詞"))
                             .font(.system(.headline, design: .rounded))
                             .foregroundColor(.white)
 
@@ -465,4 +465,3 @@ struct NowPlayingView: View {
 private final class ViewportTracker {
     var visibleIndices: Set<Int> = []
 }
-
