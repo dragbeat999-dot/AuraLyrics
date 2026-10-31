@@ -18,7 +18,7 @@ struct NowPlayingView: View {
     @AppStorage("showBilingualLyrics") private var showTranslation = true
     @AppStorage("enableLyricDefocusBlur") private var enableLyricDefocusBlur = true
     
-    // TOMBOL BARU: Menyimpan status tombol terjemahan (On/Off)
+    // TOMBOL TERJEMAHAN
     @AppStorage("enableAutoTranslation") private var enableAutoTranslation = false
 
     /// 零重繪之可視行索引追蹤器（參考型別，不觸發全視圖 body 刷新）
@@ -45,7 +45,7 @@ struct NowPlayingView: View {
 
                 // MARK: - 內容頂層：右上角三顆完全獨立放大的 Liquid Glass 圓形按鈕
                 HStack(spacing: 12) {
-                    translateButton // <--- TOMBOL TERJEMAHAN BARU
+                    translateButton // <--- TOMBOL TERJEMAHAN
                     pipIndependentButton
                     moreMenuIndependentButton
                 }
@@ -88,9 +88,10 @@ struct NowPlayingView: View {
         }
     }
 
-    // MARK: - Tombol Terjemahan (Baru)
+    // MARK: - Tombol Terjemahan (Dengan Animasi)
     private var translateButton: some View {
         let buttonDiameter: CGFloat = 40
+        let isTranslating = monitor.isTranslatingLyrics
 
         return Button {
             enableAutoTranslation.toggle()
@@ -103,16 +104,33 @@ struct NowPlayingView: View {
             }
         } label: {
             ZStack {
-                // Ikon buku/karakter
-                Image(systemName: "character.book.closed.fill")
-                    .font(.system(size: 16, weight: .semibold))
-                    .foregroundColor(enableAutoTranslation ? .pink : .white)
+                if isTranslating {
+                    // Animasi Loading (Berputar) saat sedang menerjemahkan
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .scaleEffect(0.8)
+                } else {
+                    // Ikon buku dengan efek memantul (bounce) saat ditekan
+                    Image(systemName: "character.book.closed.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white) 
+                        .symbolEffect(.bounce, value: enableAutoTranslation)
+                }
             }
             .frame(width: buttonDiameter, height: buttonDiameter)
             .liquidGlassCircle(isActive: enableAutoTranslation, activeTint: .pink)
             .contentShape(Circle())
+            .overlay(
+                // Efek gelombang (pulse) di sekeliling tombol saat menerjemahkan
+                Circle()
+                    .stroke(Color.pink, lineWidth: 2)
+                    .scaleEffect(isTranslating ? 1.3 : 1.0)
+                    .opacity(isTranslating ? 0.0 : 1.0)
+                    .animation(isTranslating ? .easeOut(duration: 1).repeatForever(autoreverses: false) : .default, value: isTranslating)
+            )
         }
-        .buttonStyle(LiquidSpringButtonStyle(scaleAmount: 0.90))
+        .buttonStyle(LiquidSpringButtonStyle(scaleAmount: 0.85)) // Tombol mengecil sedikit saat ditekan (efek spring)
+        .sensoryFeedback(.success, trigger: enableAutoTranslation) // Getaran saat tombol aktif
         .accessibilityLabel("Terjemahkan Lirik ke Indonesia")
     }
 
