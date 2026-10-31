@@ -94,7 +94,7 @@ struct SettingsView: View {
                             Text("歌詞延遲微調")
                                 .font(.subheadline)
                             Spacer()
-                            Text(String(format: "%+.1f 秒", Double(musicMonitor.globalOffsetMs) / 1000.0))
+                            Text(String(format: String(localized: "%+.1f 秒"), Double(musicMonitor.globalOffsetMs) / 1000.0))
                                 .font(.system(.subheadline, design: .monospaced).weight(.bold))
                                 .foregroundColor(musicMonitor.globalOffsetMs == 0 ? .secondary : .pink)
                                 .padding(.horizontal, 8)
