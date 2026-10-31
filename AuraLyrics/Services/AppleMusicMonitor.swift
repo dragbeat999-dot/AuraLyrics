@@ -22,6 +22,10 @@ public final class AppleMusicMonitor: ObservableObject {
     public private(set) var currentPlaybackTimeSec: TimeInterval = 0.0
     public private(set) var lastTickTimestamp: CFTimeInterval = CACurrentMediaTime()
     @Published public private(set) var isLoadingLyrics: Bool = false
+    
+    // --- VARIABEL BARU UNTUK TERJEMAHAN ---
+    @Published public private(set) var isTranslatingLyrics: Bool = false
+    // --------------------------------------
 
     /// 全域歌詞同步時間微調偏移量（毫秒，每首歌共用）
     @Published public var globalOffsetMs: Int {
@@ -299,6 +303,14 @@ public final class AppleMusicMonitor: ObservableObject {
             guard !Task.isCancelled else { return }
             if let fetched = fetched {
                 self.currentLyrics = fetched
+
+                // --- FITUR TERJEMAHAN OTOMATIS (APPLE MUSIC) ---
+                if UserDefaults.standard.bool(forKey: "enableAutoTranslation") {
+                    Task { @MainActor in
+                        await self.translateCurrentLyrics()
+                    }
+                }
+                // -----------------------------------------------
 
                 // 核心關鍵修正：當非同步網路請求歌詞完成時（背景可能耗時 1~3 秒），
                 // 立即重新取樣當前真實播放進度，校準 anchorPlaybackTimeSec 與音訊 100% 同步！
@@ -628,6 +640,15 @@ public final class AppleMusicMonitor: ObservableObject {
             let fetched = await LyricsProviderService.shared.fetchLyrics(track: newTrack)
             guard !Task.isCancelled else { return }
             self.currentLyrics = fetched ?? SyncedLyrics.empty
+
+            // --- FITUR TERJEMAHAN OTOMATIS (SPOTIFY) ---
+            if UserDefaults.standard.bool(forKey: "enableAutoTranslation") {
+                Task { @MainActor in
+                    await self.translateCurrentLyrics()
+                }
+            }
+            // -------------------------------------------
+
             self.refreshCurrentLineIndex(forceSync: true)
             self.isLoadingLyrics = false
         }
@@ -793,5 +814,39 @@ public final class AppleMusicMonitor: ObservableObject {
     public func applyCustomLyrics(_ lyrics: SyncedLyrics) {
         currentLyrics = lyrics
         refreshCurrentLineIndex(forceSync: true)
+    }
+    
+    // MARK: - 翻譯功能 (BARU)
+    public func translateCurrentLyrics() async {
+        guard !isTranslatingLyrics else { return }
+        isTranslatingLyrics = true
+        defer { isTranslatingLyrics = false }
+        
+        var updatedLines = currentLyrics.lines
+        var hasChanges = false
+        
+        for i in 0..<updatedLines.count {
+            if let existingTrans = updatedLines[i].translation, !existingTrans.isEmpty {
+                continue
+            }
+            
+            let originalText = updatedLines[i].text
+            if originalText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty { continue }
+            
+            if let translated = await TranslationService.shared.translateToIndonesian(text: originalText) {
+                updatedLines[i].translation = translated
+                hasChanges = true
+                
+                var tempLyrics = currentLyrics
+                tempLyrics.lines = updatedLines
+                self.currentLyrics = tempLyrics
+                
+                try? await Task.sleep(nanoseconds: 200_000_000)
+            }
+        }
+        
+        if hasChanges {
+            print("Semua lirik berhasil diterjemahkan ke Bahasa Indonesia.")
+        }
     }
 }
