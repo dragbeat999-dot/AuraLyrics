@@ -9,47 +9,34 @@ struct PlaybackSettingsView: View {
 
     var body: some View {
         Form {
-            // MARK: - Pilihan Sumber Pemutar
             Section {
                 Picker("Sumber pemutar", selection: $monitor.playbackSource) {
-                    Label("Apple Music", systemImage: "music.note")
-                        .tag(PlaybackSource.appleMusic)
-                    
-                    Label("Spotify", systemImage: "waveform")
-                        .tag(PlaybackSource.spotify)
-                    
-                    Label("System (YouTube Music, dll)", systemImage: "antenna.radiowaves.left.and.right")
-                        .tag(PlaybackSource.system)
+                    Text("Apple Music").tag(PlaybackSource.appleMusic)
+                    Text("Spotify").tag(PlaybackSource.spotify)
                 }
                 .pickerStyle(.inline)
             } header: {
-                Text("Sumber Pemutar")
+                Text("Sumber pemutar")
             } footer: {
-                Text("Pilih 'System' jika kamu memutar lagu dari YouTube Music, SoundCloud, atau aplikasi lain yang tampil di Control Center.")
+                Text("Pilih sumber lagu yang sedang kamu putar (Apple Music atau Spotify).")
             }
             
-            // MARK: - Menu Khusus Spotify
-            if monitor.playbackSource == PlaybackSource.spotify {
+            if monitor.playbackSource == .spotify {
                 Section {
                     HStack {
-                        Text("Status Akun")
+                        Text("Status")
                         Spacer()
                         if authManager.isLoggedIn {
-                            Text("Terhubung")
-                                .foregroundColor(.green)
-                                .fontWeight(.medium)
+                            Text("Terhubung").foregroundColor(.green)
                         } else {
-                            Text("Belum masuk")
-                                .foregroundColor(.secondary)
+                            Text("Belum masuk").foregroundColor(.secondary)
                         }
                     }
                     
                     if authManager.isLoggedIn {
-                        Button(role: .destructive) {
+                        Button("Keluar dari Spotify", role: .destructive) {
                             authManager.logout()
-                            monitor.playbackSource = PlaybackSource.appleMusic // Kembali ke default jika logout
-                        } label: {
-                            Label("Keluar dari Spotify", systemImage: "rectangle.portrait.and.arrow.right")
+                            monitor.playbackSource = .appleMusic
                         }
                     } else {
                         Button {
@@ -65,41 +52,21 @@ struct PlaybackSettingsView: View {
                             }
                         } label: {
                             HStack {
-                                Label("Masuk dengan Spotify", systemImage: "person.badge.key.fill")
+                                Text("Masuk dengan Spotify")
                                 Spacer()
-                                if isLoggingIn {
-                                    ProgressView()
-                                }
+                                if isLoggingIn { ProgressView() }
                             }
                         }
                         .disabled(isLoggingIn)
                         
                         if let error = loginError {
-                            Text(error)
-                                .font(.footnote)
-                                .foregroundColor(.red)
+                            Text(error).font(.footnote).foregroundColor(.red)
                         }
                     }
                 } header: {
                     Text("Akun Spotify")
                 } footer: {
                     Text("Hanya izin baca lagu yang sedang diputar. Spotify harus sedang memutar lagu di perangkat mana pun.")
-                }
-            }
-            
-            // MARK: - Informasi Khusus System
-            if monitor.playbackSource == PlaybackSource.system {
-                Section {
-                    HStack(alignment: .top, spacing: 10) {
-                        Image(systemName: "info.circle.fill")
-                            .foregroundColor(.blue)
-                            .padding(.top, 2)
-                        Text("Aplikasi akan mencoba membaca metadata lagu dari Control Center menggunakan Private API. Fitur ini mungkin tidak berfungsi jika iOS membatasi aksesnya.")
-                            .font(.footnote)
-                            .foregroundColor(.secondary)
-                    }
-                } header: {
-                    Text("Info System")
                 }
             }
         }
