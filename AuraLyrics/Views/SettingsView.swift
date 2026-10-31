@@ -1,7 +1,7 @@
 import SwiftUI
 import ActivityKit
 
-/// 設定與環境診斷視圖（Apple HIG 實時 PiP 預覽卡與多維度無障礙診斷）
+/// Halaman Pengaturan Utama AuraLyrics
 struct SettingsView: View {
     @ObservedObject var envDetector = RuntimeEnvironmentDetector.shared
     @ObservedObject var pipEngine = PiPLyricsEngine.shared
@@ -17,111 +17,135 @@ struct SettingsView: View {
     var body: some View {
         NavigationStack {
             Form {
-                // MARK: - Sumber pemutar (Apple Music / Spotify / System)
+                // MARK: - 1. SUMBER PEMUTAR
                 Section {
                     NavigationLink {
-                        PlaybackSettingsView() // <-- SUDAH DIGANTI KE FILE BARU
+                        PlaybackSettingsView()
                     } label: {
-                        HStack {
-                            Label("Sumber pemutar & Spotify", systemImage: "music.note.list")
-                            Spacer()
+                        HStack(spacing: 12) {
+                            Image(systemName: "music.note.tv")
+                                .foregroundColor(.white)
+                                .frame(width: 28, height: 28)
+                                .background(Color.pink)
+                                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
                             
-                            // --- PERBAIKAN ERROR COMPILER DISINI ---
-                            if musicMonitor.playbackSource == PlaybackSource.spotify {
-                                Text("Spotify")
-                                    .foregroundColor(.secondary)
-                            } else if musicMonitor.playbackSource == PlaybackSource.system {
-                                Text("System (YT Music)")
-                                    .foregroundColor(.secondary)
-                            } else {
-                                Text("Apple Music")
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Sumber Pemutar")
+                                    .font(.body)
+                                Text(playbackSourceName)
+                                    .font(.caption)
                                     .foregroundColor(.secondary)
                             }
-                            // ---------------------------------------
                         }
                     }
                 } header: {
-                    Text("Sumber pemutar")
+                    Text("Sumber Pemutar")
                 } footer: {
-                    Text("Pilih Apple Music, Spotify, atau System (YouTube Music, dll) sebagai sumber lagu yang liriknya ditampilkan.")
+                    Text("Pilih dari mana lagu diputar (Apple Music, Spotify, atau System untuk YouTube Music/SoundCloud).")
                 }
 
-                // MARK: - 子母畫面 (PiP) 實時預覽與開關
+                // MARK: - 2. PICTURE IN PICTURE (PiP)
                 Section {
-                    // 1:1 實時 PiP 預覽視窗卡
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("子母畫面預覽")
-                            .font(.caption)
-                            .fontWeight(.semibold)
-                            .foregroundColor(.secondary)
-
-                        // 模擬真實懸浮視窗比例 (寬高比 ~ 3.5:1，高度 80pt)
                         PiPLyricsView(viewModel: pipVM)
                             .frame(height: 80)
-                            .clipShape(RoundedRectangle(cornerRadius: 22, style: .continuous))
+                            .clipShape(RoundedRectangle(cornerRadius: 20, style: .continuous))
                             .shadow(color: Color.black.opacity(0.15), radius: 10, y: 4)
                     }
                     .padding(.vertical, 6)
+                    .listRowInsets(EdgeInsets(top: 8, leading: 16, bottom: 8, trailing: 16))
 
-                    Toggle("啟用子母畫面 (PiP)", isOn: Binding(
+                    Toggle(isOn: Binding(
                         get: { pipEngine.isPiPEnabled },
                         set: { enable in
                             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
-                            if enable {
-                                pipEngine.startPiP()
-                            } else {
-                                pipEngine.stopPiP()
-                            }
+                            if enable { pipEngine.startPiP() } else { pipEngine.stopPiP() }
                         }
-                    ))
+                    )) {
+                        Label {
+                            Text("Aktifkan Picture in Picture (PiP)")
+                        } icon: {
+                            Image(systemName: "pip.fill")
+                                .foregroundColor(.pink)
+                        }
+                    }
                 } header: {
-                    Text("子母畫面 (PiP)")
+                    Text("Picture in Picture (PiP)")
+                } footer: {
+                    Text("Menampilkan lirik dalam jendela mengambang yang bisa dipindah-pindahkan.")
                 }
 
-                // MARK: - 即時動態與動態島
+                // MARK: - 3. LIVE ACTIVITY & DYNAMIC ISLAND
                 Section {
                     NavigationLink {
                         LiveActivitySettingsView()
                     } label: {
-                        HStack {
-                            Label("即時動態與動態島設定", systemImage: "waveform.badge.magnifyingglass")
-                            Spacer()
-                            Text(LiveActivityLyricsEngine.shared.isEnabled ? "已開啟" : "已關閉")
-                                .foregroundColor(.secondary)
+                        HStack(spacing: 12) {
+                            Image(systemName: "waveform.badge.magnifyingglass")
+                                .foregroundColor(.white)
+                                .frame(width: 28, height: 28)
+                                .background(Color.purple)
+                                .clipShape(RoundedRectangle(cornerRadius: 7, style: .continuous))
+                            
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("Live Activity & Dynamic Island")
+                                    .font(.body)
+                                Text(LiveActivityLyricsEngine.shared.isEnabled ? "Aktif" : "Nonaktif")
+                                    .font(.caption)
+                                    .foregroundColor(LiveActivityLyricsEngine.shared.isEnabled ? .green : .secondary)
+                            }
                         }
                     }
                 } header: {
-                    Text("即時動態")
+                    Text("Live Activity")
+                } footer: {
+                    Text("Menampilkan lirik real-time di Dynamic Island dan Lock Screen saat kamu memutar lagu.")
                 }
 
-                // MARK: - 歌詞來源與搜尋順位
+                // MARK: - 4. SUMBER LIRIK
                 Section {
                     NavigationLink {
                         LyricsSourcePriorityView()
                     } label: {
-                        Label("自動搜尋歌詞順位", systemImage: "arrow.up.arrow.down.square")
+                        Label {
+                            Text("Prioritas Pencarian Lirik")
+                        } icon: {
+                            Image(systemName: "arrow.up.arrow.down.square.fill")
+                                .foregroundColor(.orange)
+                        }
                     }
                 } header: {
-                    Text("歌詞來源")
+                    Text("Sumber Lirik")
                 } footer: {
-                    Text("可自訂 Musixmatch、網易雲音樂、LRCLIB 與 PetitLyrics 的搜尋順位，並區分逐字時間軸與普通逐行歌詞。")
+                    Text("Atur urutan penyedia lirik (Musixmatch, NetEase, LRCLIB, PetitLyrics) sesuai preferensi kamu.")
                 }
 
-                // MARK: - 歌詞視覺效果
+                // MARK: - 5. TAMPILAN & VISUAL
                 Section {
-                    Toggle("非焦點歌詞模糊效果", isOn: $enableLyricDefocusBlur)
+                    Toggle(isOn: $enableLyricDefocusBlur) {
+                        Label {
+                            Text("Efek Blur Lirik Non-Fokus")
+                        } icon: {
+                            Image(systemName: "wind")
+                                .foregroundColor(.blue)
+                        }
+                    }
                 } header: {
-                    Text("歌詞視覺效果")
+                    Text("Tampilan & Visual")
                 } footer: {
-                    Text("開啟後處於焦點外的歌詞將呈現模糊效果，聚焦當前播放行；關閉可降低發熱及耗電。")
+                    Text("Saat aktif, lirik di luar fokus akan tampak buram untuk menyorot lirik yang sedang diputar. Nonaktifkan untuk menghemat baterai.")
                 }
 
-                // MARK: - 歌詞同步時間微調（全域共用）
+                // MARK: - 6. SINKRONISASI WAKTU
                 Section {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            Text("歌詞延遲微調")
-                                .font(.subheadline)
+                            Label {
+                                Text("Delay Lirik Global")
+                            } icon: {
+                                Image(systemName: "metronome.fill")
+                                    .foregroundColor(.pink)
+                            }
                             Spacer()
                             Text(String(format: String(localized: "%+.1f 秒"), Double(musicMonitor.globalOffsetMs) / 1000.0))
                                 .font(.system(.subheadline, design: .monospaced).weight(.bold))
@@ -143,20 +167,18 @@ struct SettingsView: View {
                                     .frame(height: 38)
                             }
                             .buttonStyle(.bordered)
-                            .accessibilityLabel(String(localized: "所有歌曲歌詞延後 0.1 秒"))
 
                             Button {
                                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
                                 musicMonitor.resetGlobalOffset()
                             } label: {
-                                Text("重設")
+                                Text("Reset")
                                     .font(.system(.subheadline, design: .rounded).weight(.medium))
                                     .frame(maxWidth: .infinity)
                                     .frame(height: 38)
                             }
                             .buttonStyle(.bordered)
                             .tint(.secondary)
-                            .accessibilityLabel(String(localized: "重設全域歌詞延遲為零秒"))
 
                             Button {
                                 UIImpactFeedbackGenerator(style: .light).impactOccurred()
@@ -168,172 +190,144 @@ struct SettingsView: View {
                                     .frame(height: 38)
                             }
                             .buttonStyle(.bordered)
-                            .accessibilityLabel(String(localized: "所有歌曲歌詞提前 0.1 秒"))
                         }
                     }
                     .padding(.vertical, 4)
                 } header: {
-                    Text("歌詞顯示延遲微調")
+                    Text("Sinkronisasi Waktu")
                 } footer: {
-                    Text("所有歌曲共用此微調時間，正值代表歌詞提前唱出、負值代表延後。")
+                    Text("Delay ini berlaku untuk semua lagu. Nilai positif = lirik muncul lebih cepat, negatif = lebih lambat.")
                 }
 
-                // MARK: - 系統與環境診斷（圖示形狀 + 狀態文字 + 色彩，符合無障礙規範）
+                // MARK: - 7. DIAGNOSTIK
                 Section {
-                    // 執行環境
-                    HStack {
-                        Label {
-                            Text("執行環境")
-                        } icon: {
-                            Image(systemName: envDetector.isLiveContainer ? "shippingbox.fill" : "iphone.gen3")
-                                .foregroundColor(.pink)
-                        }
-                        Spacer()
-                        HStack(spacing: 5) {
-                            Image(systemName: envDetector.isLiveContainer ? "info.circle.fill" : "checkmark.seal.fill")
-                                .foregroundColor(envDetector.isLiveContainer ? .orange : .green)
-                            Text(envDetector.isLiveContainer ? String(localized: "LiveContainer 沙盒") : String(localized: "原生側載"))
-                                .fontWeight(.medium)
-                                .foregroundColor(envDetector.isLiveContainer ? .orange : .green)
-                        }
-                        .font(.subheadline)
-                    }
+                    diagnosticRow(
+                        icon: "shippingbox.fill",
+                        title: "Lingkungan Runtime",
+                        value: envDetector.isLiveContainer ? "LiveContainer" : "Sideload Native",
+                        color: envDetector.isLiveContainer ? .orange : .green
+                    )
+                    diagnosticRow(
+                        icon: "waveform",
+                        title: "Live Activity (ActivityKit)",
+                        value: envDetector.areLiveActivitiesAvailable ? "Didukung" : "Terbatas",
+                        color: envDetector.areLiveActivitiesAvailable ? .green : .orange
+                    )
+                    diagnosticRow(
+                        icon: "pip",
+                        title: "Picture in Picture (PiP)",
+                        value: pipEngine.isPiPPossible ? "Didukung" : "Tidak Didukung",
+                        color: pipEngine.isPiPPossible ? .green : .red
+                    )
+                    diagnosticRow(
+                        icon: "bolt.shield.fill",
+                        title: "Background Keep-Alive",
+                        value: keepAlive.isRunning ? "Berjalan" : "Dijeda",
+                        color: keepAlive.isRunning ? .green : .secondary
+                    )
+                } header: {
+                    Text("Diagnostik Lingkungan")
+                } footer: {
+                    Text("Jika kamu menggunakan LiveContainer, sistem iOS mungkin membatasi fitur Live Activity.")
+                }
 
-                    // 即時動態 (ActivityKit)
-                    HStack {
+                // MARK: - 8. BACKGROUND KEEP-ALIVE
+                Section {
+                    Toggle(isOn: Binding(
+                        get: { keepAlive.isRunning },
+                        set: { enable in
+                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+                            if enable { keepAlive.startKeepAlive() } else { keepAlive.stopKeepAlive() }
+                        }
+                    )) {
                         Label {
-                            Text("即時動態 (ActivityKit)")
-                        } icon: {
-                            Image(systemName: "waveform")
-                                .foregroundColor(.pink)
-                        }
-                        Spacer()
-                        HStack(spacing: 5) {
-                            Image(systemName: envDetector.areLiveActivitiesAvailable ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
-                                .foregroundColor(envDetector.areLiveActivitiesAvailable ? .green : .orange)
-                            Text(envDetector.areLiveActivitiesAvailable ? String(localized: "支援") : String(localized: "受限或不支援"))
-                                .fontWeight(.medium)
-                                .foregroundColor(envDetector.areLiveActivitiesAvailable ? .green : .orange)
-                        }
-                        .font(.subheadline)
-                    }
-
-                    // 子母畫面 (PiP)
-                    HStack {
-                        Label {
-                            Text("子母畫面 (PiP)")
-                        } icon: {
-                            Image(systemName: "pip")
-                                .foregroundColor(.pink)
-                        }
-                        Spacer()
-                        HStack(spacing: 5) {
-                            Image(systemName: pipEngine.isPiPPossible ? "checkmark.circle.fill" : "xmark.circle.fill")
-                                .foregroundColor(pipEngine.isPiPPossible ? .green : .red)
-                            Text(pipEngine.isPiPPossible ? String(localized: "支援") : String(localized: "受限或不支援"))
-                                .fontWeight(.medium)
-                                .foregroundColor(pipEngine.isPiPPossible ? .green : .red)
-                        }
-                        .font(.subheadline)
-                    }
-
-                    // 背景保活狀態
-                    HStack {
-                        Label {
-                            Text("背景保活狀態")
+                            Text("Aktifkan Background Keep-Alive")
                         } icon: {
                             Image(systemName: "bolt.shield.fill")
                                 .foregroundColor(.pink)
                         }
-                        Spacer()
-                        HStack(spacing: 5) {
-                            Image(systemName: keepAlive.isRunning ? "checkmark.circle.fill" : "pause.circle.fill")
-                                .foregroundColor(keepAlive.isRunning ? .green : .secondary)
-                            Text(keepAlive.isRunning ? String(localized: "運作中") : String(localized: "已暫停"))
-                                .fontWeight(.medium)
-                                .foregroundColor(keepAlive.isRunning ? .green : .secondary)
-                        }
-                        .font(.subheadline)
                     }
                 } header: {
-                    Text("運行環境與相容性診斷")
+                    Text("Background Keep-Alive")
                 } footer: {
-                    Text("若處於 LiveContainer 環境中，iOS 系統可能限制 WidgetKit / ActivityKit 擴展程序的註冊。")
+                    Text("Menjaga aplikasi tetap berjalan di latar belakang agar lirik selalu tersinkronisasi.")
                 }
 
-                // MARK: - 背景保活管理
-                Section {
-                    Toggle("啟用背景保活", isOn: Binding(
-                        get: { keepAlive.isRunning },
-                        set: { enable in
-                            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-                            if enable {
-                                keepAlive.startKeepAlive()
-                            } else {
-                                keepAlive.stopKeepAlive()
-                            }
-                        }
-                    ))
-                } header: {
-                    Text("背景保活")
-                }
-
-                // MARK: - 快取管理
+                // MARK: - 9. PENYIMPANAN
                 Section {
                     Button(role: .destructive) {
                         showResetCacheAlert = true
                     } label: {
-                        HStack {
-                            Image(systemName: "trash")
-                            Text("清除所有歌詞快取")
+                        Label {
+                            Text("Hapus Semua Cache Lirik")
+                        } icon: {
+                            Image(systemName: "trash.fill")
                         }
                         .frame(minHeight: 36)
                     }
                 } header: {
-                    Text("儲存空間與快取")
+                    Text("Penyimpanan")
+                } footer: {
+                    Text("Menghapus cache akan membuat aplikasi mengunduh ulang lirik saat lagu diputar kembali.")
                 }
 
-                // MARK: - 關於與開源說明
+                // MARK: - 10. TENTANG
                 Section {
                     HStack {
-                        Text("應用程式版本")
+                        Label {
+                            Text("Versi Aplikasi")
+                        } icon: {
+                            Image(systemName: "info.circle.fill")
+                                .foregroundColor(.blue)
+                        }
                         Spacer()
                         Text(appVersionString)
                             .foregroundColor(.secondary)
                     }
                     HStack {
-                        Text("歌詞來源")
+                        Label {
+                            Text("Sumber Lirik")
+                        } icon: {
+                            Image(systemName: "music.note.list")
+                                .foregroundColor(.pink)
+                        }
                         Spacer()
-                        Text("Musixmatch / 網易雲 (NetEase) / LRCLIB / PetitLyrics")
+                        Text("Musixmatch, NetEase, LRCLIB, PetitLyrics")
                             .foregroundColor(.secondary)
+                            .font(.caption)
                     }
                     HStack {
-                        Text("開源授權")
+                        Label {
+                            Text("Lisensi")
+                        } icon: {
+                            Image(systemName: "doc.text.fill")
+                                .foregroundColor(.orange)
+                        }
                         Spacer()
                         Text("MPL-2.0")
                             .foregroundColor(.secondary)
                     }
                 } header: {
-                    Text("關於 AuraLyrics")
+                    Text("Tentang AuraLyrics")
                 } footer: {
-                    Text("版權聲明：本應用程式為開源第三方歌詞輔助工具。所有歌詞、翻譯、音訊元資料與專輯封面之版權與商標均屬原詞曲創作者、歌手、製作人及其相應唱片公司或版權方所有。")
+                    Text("AuraLyrics adalah aplikasi open-source pihak ketiga untuk menampilkan lirik. Semua hak cipta lirik, terjemahan, dan metadata milik pemiliknya masing-masing.")
                 }
             }
-            .navigationTitle("設定")
-            .alert("確定清除所有歌詞快取？", isPresented: $showResetCacheAlert) {
-                Button("取消", role: .cancel) {}
-                Button("確定", role: .destructive) {
+            .navigationTitle("Pengaturan")
+            .alert("Hapus Semua Cache?", isPresented: $showResetCacheAlert) {
+                Button("Batal", role: .cancel) {}
+                Button("Hapus", role: .destructive) {
                     clearAllCache()
                 }
             } message: {
-                Text("此操作將刪除本機儲存的所有歌詞快取，再次播放將自動重新下載。")
+                Text("Tindakan ini akan menghapus semua cache lirik lokal. Lirik akan diunduh ulang saat lagu diputar kembali.")
             }
             .overlay(alignment: .bottom) {
                 if cacheClearedToast {
                     HStack(spacing: 8) {
                         Image(systemName: "checkmark.circle.fill")
                             .foregroundColor(.green)
-                        Text("成功清除本機歌詞快取")
+                        Text("Cache berhasil dihapus")
                             .font(.subheadline)
                             .fontWeight(.medium)
                     }
@@ -348,6 +342,38 @@ struct SettingsView: View {
         }
     }
 
+    // MARK: - Helper: Nama Sumber Pemutar
+    private var playbackSourceName: String {
+        switch musicMonitor.playbackSource {
+        case .appleMusic: return "Apple Music"
+        case .spotify: return "Spotify"
+        case .system: return "System (YouTube Music, dll)"
+        }
+    }
+
+    // MARK: - Helper: Baris Diagnostik
+    @ViewBuilder
+    private func diagnosticRow(icon: String, title: String, value: String, color: Color) -> some View {
+        HStack {
+            Label {
+                Text(title)
+            } icon: {
+                Image(systemName: icon)
+                    .foregroundColor(.pink)
+            }
+            Spacer()
+            HStack(spacing: 5) {
+                Image(systemName: color == .green ? "checkmark.circle.fill" : "info.circle.fill")
+                    .foregroundColor(color)
+                Text(value)
+                    .fontWeight(.medium)
+                    .foregroundColor(color)
+            }
+            .font(.subheadline)
+        }
+    }
+
+    // MARK: - Fungsi Hapus Cache
     private func clearAllCache() {
         UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         LyricsProviderService.shared.clearAllCache()
@@ -359,10 +385,10 @@ struct SettingsView: View {
         }
     }
 
-    /// 動態讀取 App 系統版本與內部建置號
+    // MARK: - Versi Aplikasi
     private var appVersionString: String {
         let version = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "0.9.0"
         let build = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "1"
-        return "\(version) Beta (Build \(build))"
+        return "\(version) (Build \(build))"
     }
 }
