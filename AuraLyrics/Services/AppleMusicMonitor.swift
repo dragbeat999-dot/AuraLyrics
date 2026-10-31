@@ -3,7 +3,13 @@ import MediaPlayer
 import Combine
 import UIKit
 
-/// Apple Music 系統播放器監聽與即時時間軸推播器
+/// Sumber lagu yang sedang diputar
+public enum PlaybackSource: String, CaseIterable {
+    case appleMusic
+    case spotify
+}
+
+/// Apple Music 系統播放器監聽與即時時間軸推播器（已加入 Spotify 來源支援）
 @MainActor
 public final class AppleMusicMonitor: ObservableObject {
     public static let shared = AppleMusicMonitor()
@@ -24,6 +30,18 @@ public final class AppleMusicMonitor: ObservableObject {
         }
     }
 
+    /// Sumber pemutar yang dipantau (Apple Music atau Spotify)
+    @Published public var playbackSource: PlaybackSource {
+        didSet {
+            guard oldValue != playbackSource else { return }
+            UserDefaults.standard.set(playbackSource.rawValue, forKey: "playbackSource")
+            handleSourceChanged()
+        }
+    }
+
+    /// Pesan status/kesalahan terakhir dari Spotify (nil bila normal)
+    @Published public private(set) var spotifyStatusMessage: String? = nil
+
     private let musicPlayer = MPMusicPlayerController.systemMusicPlayer
     private let timerQueue = DispatchQueue(label: "com.auralyrics.monitor.timerQueue", qos: .userInteractive)
     private var timerSource: DispatchSourceTimer?
@@ -40,8 +58,14 @@ public final class AppleMusicMonitor: ObservableObject {
     private var lastPlaybackTimeSec: TimeInterval = 0.0
     private var lyricsFetchTask: Task<Void, Never>? = nil
 
+    // MARK: - Spotify
+    private var spotifyPollTask: Task<Void, Never>? = nil
+    private var lastSpotifyTrackID: String = ""
+    private var spotifyBackoffSec: TimeInterval = 0
+
     private init() {
         self.globalOffsetMs = UserDefaults.standard.integer(forKey: "globalLyricsOffsetMs")
+        self.playbackSource = PlaybackSource(rawValue: UserDefaults.standard.string(forKey: "playbackSource") ?? "") ?? .appleMusic
         setupNotifications()
     }
 
@@ -98,8 +122,12 @@ public final class AppleMusicMonitor: ObservableObject {
                 guard let self = self else { return }
                 self.isInBackground = false
                 self.musicPlayer.beginGeneratingPlaybackNotifications()
-                self.handleTrackChanged(force: true)
-                self.handlePlaybackStateChanged()
+                if self.playbackSource == .appleMusic {
+                    self.handleTrackChanged(force: true)
+                    self.handlePlaybackStateChanged()
+                } else {
+                    self.refreshSpotifyNow()
+                }
             }
         }
 
@@ -111,16 +139,22 @@ public final class AppleMusicMonitor: ObservableObject {
             Task { @MainActor [weak self] in
                 guard let self = self else { return }
                 self.isInBackground = false
-                self.handleTrackChanged()
-                self.handlePlaybackStateChanged()
+                if self.playbackSource == .appleMusic {
+                    self.handleTrackChanged()
+                    self.handlePlaybackStateChanged()
+                } else {
+                    self.refreshSpotifyNow()
+                }
             }
         }
     }
 
     // MARK: - 啟動監聽與高精度時間軸定時器 (DispatchSourceTimer 前景背景統一驅動)
     public func startMonitoring() {
-        handleTrackChanged(force: true)
-        handlePlaybackStateChanged()
+        if playbackSource == .appleMusic {
+            handleTrackChanged(force: true)
+            handlePlaybackStateChanged()
+        }
 
         stopTimer()
 
@@ -133,6 +167,10 @@ public final class AppleMusicMonitor: ObservableObject {
         }
         source.resume()
         self.timerSource = source
+
+        if playbackSource == .spotify {
+            startSpotifyPolling()
+        }
     }
 
     private func stopTimer() {
@@ -142,13 +180,52 @@ public final class AppleMusicMonitor: ObservableObject {
 
     public func stopMonitoring() {
         stopTimer()
+        spotifyPollTask?.cancel()
+        spotifyPollTask = nil
         lyricsFetchTask?.cancel()
         lyricsFetchTask = nil
         musicPlayer.endGeneratingPlaybackNotifications()
     }
 
+    // MARK: - Ganti sumber pemutar (Apple Music <-> Spotify)
+    private func handleSourceChanged() {
+        spotifyPollTask?.cancel()
+        spotifyPollTask = nil
+        lyricsFetchTask?.cancel()
+        lyricsFetchTask = nil
+
+        isLoadingLyrics = false
+        currentTrack = .placeholder
+        currentLyrics = .empty
+        currentLineIndex = nil
+        isPlaying = false
+        playbackProgress = 0.0
+        currentPlaybackTimeSec = 0.0
+        anchorPlaybackTimeSec = 0.0
+        anchorMediaTime = 0.0
+        lastPersistentID = 0
+        lastPlaybackStoreID = ""
+        lastPlaybackTimeSec = 0.0
+        lastSpotifyTrackID = ""
+        spotifyBackoffSec = 0
+        spotifyStatusMessage = nil
+        syncExternalEngines()
+
+        // Hanya jalankan ulang bila pemantauan sedang aktif
+        guard timerSource != nil else { return }
+        switch playbackSource {
+        case .appleMusic:
+            handleTrackChanged(force: true)
+            handlePlaybackStateChanged()
+        case .spotify:
+            startSpotifyPolling()
+        }
+    }
+
     // MARK: - 曲目變更處理 (支援強制刷新與即時清空舊歌詞)
     private func handleTrackChanged(force: Bool = false) {
+        guard playbackSource == .appleMusic else { return }
+
         guard let nowPlaying = musicPlayer.nowPlayingItem else {
             // 背景下若 IPC 讀取為 nil，維持當前歌曲與歌詞，絕不誤清空
             if isInBackground { return }
@@ -241,6 +318,8 @@ public final class AppleMusicMonitor: ObservableObject {
     }
 
     private func handlePlaybackStateChanged() {
+        guard playbackSource == .appleMusic else { return }
+
         let newIsPlaying = (musicPlayer.playbackState == .playing)
         if isPlaying != newIsPlaying {
             isPlaying = newIsPlaying
@@ -268,6 +347,12 @@ public final class AppleMusicMonitor: ObservableObject {
 
     // MARK: - 時間軸定時器循環 (高精度時鐘平滑推進與智慧防抖校準)
     private func tick() {
+        // Mode Spotify memakai jalur terpisah (data dari polling Web API)
+        if playbackSource == .spotify {
+            tickSpotify()
+            return
+        }
+
         let now = CACurrentMediaTime()
         lastTickTimestamp = now
 
@@ -383,6 +468,205 @@ public final class AppleMusicMonitor: ObservableObject {
         refreshCurrentLineIndex()
     }
 
+    // MARK: - Spotify: polling Web API
+    private func startSpotifyPolling() {
+        spotifyPollTask?.cancel()
+        spotifyPollTask = Task { [weak self] in
+            while !Task.isCancelled {
+                guard let self = self else { return }
+                await self.pollSpotifyOnce()
+
+                var interval: TimeInterval = self.isPlaying ? 3.0 : 5.0
+                // Mendekati akhir lagu: poll lebih sering agar pergantian lagu cepat terdeteksi
+                if self.isPlaying && self.currentTrack.duration > 0 {
+                    let remaining = self.currentTrack.duration - self.currentPlaybackTimeSec
+                    if remaining < 4.0 { interval = 1.0 }
+                }
+                if self.spotifyBackoffSec > 0 { interval = self.spotifyBackoffSec }
+
+                try? await Task.sleep(nanoseconds: UInt64(interval * 1_000_000_000))
+            }
+        }
+    }
+
+    /// Poll sekarang juga (dipanggil setelah login atau saat aplikasi kembali ke depan)
+    public func refreshSpotifyNow() {
+        guard playbackSource == .spotify else { return }
+        Task { [weak self] in
+            await self?.pollSpotifyOnce()
+        }
+    }
+
+    private func pollSpotifyOnce() async {
+        guard playbackSource == .spotify else { return }
+        guard SpotifyAuthManager.shared.isLoggedIn else {
+            spotifyStatusMessage = "Belum masuk ke Spotify."
+            return
+        }
+        do {
+            let snapshot = try await SpotifyPlaybackClient.shared.fetchCurrentlyPlaying()
+            guard !Task.isCancelled, playbackSource == .spotify else { return }
+            spotifyBackoffSec = 0
+            spotifyStatusMessage = nil
+            applySpotifySnapshot(snapshot)
+        } catch SpotifyError.rateLimited(let retryAfter) {
+            spotifyBackoffSec = max(retryAfter, 5)
+            spotifyStatusMessage = SpotifyError.rateLimited(retryAfter).errorDescription
+        } catch {
+            // Jaringan putus / token bermasalah: pertahankan lagu dan lirik yang sedang tampil
+            if !Task.isCancelled {
+                spotifyStatusMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func applySpotifySnapshot(_ snapshot: SpotifyPlaybackSnapshot?) {
+        let now = CACurrentMediaTime()
+
+        // Tidak ada lagu aktif (204), iklan, atau podcast: anggap berhenti, jangan hapus lirik
+        guard let snap = snapshot else {
+            if isPlaying {
+                isPlaying = false
+                anchorPlaybackTimeSec = currentPlaybackTimeSec
+                anchorMediaTime = now
+                syncExternalEngines()
+                LiveActivityLyricsEngine.shared.handlePlaybackPaused()
+            }
+            return
+        }
+
+        let wasPlaying = isPlaying
+        isPlaying = snap.isPlaying
+
+        let isNewTrack = (snap.trackID != lastSpotifyTrackID)
+        if isNewTrack {
+            handleSpotifyTrackChanged(snap)
+        }
+
+        if snap.isPlaying {
+            if isNewTrack || !wasPlaying {
+                anchorPlaybackTimeSec = snap.progressSec
+            } else {
+                // Koreksi bertahap agar lirik tidak melompat karena jitter jaringan
+                let predicted = anchorPlaybackTimeSec + max(0, now - anchorMediaTime)
+                let diff = snap.progressSec - predicted
+                if abs(diff) > 1.0 {
+                    anchorPlaybackTimeSec = snap.progressSec
+                } else {
+                    anchorPlaybackTimeSec = predicted + diff * 0.25
+                }
+            }
+            anchorMediaTime = now
+            currentPlaybackTimeSec = anchorPlaybackTimeSec
+            updatePlaybackProgress()
+
+            if !wasPlaying {
+                syncExternalEngines()
+                LiveActivityLyricsEngine.shared.handlePlaybackResumed(track: currentTrack)
+            }
+        } else {
+            let moved = abs(snap.progressSec - currentPlaybackTimeSec) > 0.5
+            anchorPlaybackTimeSec = snap.progressSec
+            anchorMediaTime = now
+            currentPlaybackTimeSec = snap.progressSec
+            updatePlaybackProgress()
+
+            if wasPlaying {
+                refreshCurrentLineIndex(forceSync: true)
+                LiveActivityLyricsEngine.shared.handlePlaybackPaused()
+            } else if moved || isNewTrack {
+                refreshCurrentLineIndex(forceSync: true)
+            }
+        }
+    }
+
+    private func handleSpotifyTrackChanged(_ snap: SpotifyPlaybackSnapshot) {
+        lastSpotifyTrackID = snap.trackID
+
+        let newTrack = TrackInfo(
+            title: snap.title,
+            artist: snap.artist,
+            album: snap.album,
+            duration: snap.durationSec,
+            artworkData: nil,
+            genre: ""
+        )
+
+        currentTrack = newTrack
+        currentLyrics = .empty
+        currentLineIndex = nil
+        playbackProgress = 0.0
+        currentPlaybackTimeSec = snap.progressSec
+        anchorPlaybackTimeSec = snap.progressSec
+        anchorMediaTime = CACurrentMediaTime()
+        lastPlaybackTimeSec = snap.progressSec
+        syncExternalEngines()
+
+        // Unduh sampul album (diperkecil 120x120 seperti jalur Apple Music)
+        if let url = snap.artworkURL {
+            let trackID = snap.trackID
+            Task { [weak self] in
+                let data = await Self.downloadArtworkData(from: url)
+                guard let self = self, let data = data, self.lastSpotifyTrackID == trackID else { return }
+                let t = self.currentTrack
+                self.currentTrack = TrackInfo(
+                    title: t.title,
+                    artist: t.artist,
+                    album: t.album,
+                    duration: t.duration,
+                    artworkData: data,
+                    genre: t.genre
+                )
+                self.syncExternalEngines()
+            }
+        }
+
+        lyricsFetchTask?.cancel()
+        lyricsFetchTask = Task { [weak self] in
+            guard let self = self else { return }
+            self.isLoadingLyrics = true
+            let fetched = await LyricsProviderService.shared.fetchLyrics(track: newTrack)
+            guard !Task.isCancelled else { return }
+            self.currentLyrics = fetched ?? SyncedLyrics.empty
+            self.refreshCurrentLineIndex(forceSync: true)
+            self.isLoadingLyrics = false
+        }
+    }
+
+    private func tickSpotify() {
+        let now = CACurrentMediaTime()
+        lastTickTimestamp = now
+
+        // Saat jeda: bekukan posisi; perubahan posisi diperbarui oleh polling
+        guard isPlaying else { return }
+
+        var t = anchorPlaybackTimeSec + max(0, now - anchorMediaTime)
+        if currentTrack.duration > 0 { t = min(t, currentTrack.duration) }
+        currentPlaybackTimeSec = t
+
+        updatePlaybackProgress()
+        refreshCurrentLineIndex()
+    }
+
+    private func updatePlaybackProgress() {
+        guard currentTrack.duration > 0 else { return }
+        playbackProgress = min(max(currentPlaybackTimeSec / currentTrack.duration, 0.0), 1.0)
+        if abs(PiPLyricsViewModel.shared.progress - playbackProgress) > 0.002 {
+            PiPLyricsViewModel.shared.progress = playbackProgress
+        }
+    }
+
+    private nonisolated static func downloadArtworkData(from url: URL) async -> Data? {
+        guard let result = try? await URLSession.shared.data(from: url),
+              let image = UIImage(data: result.0) else { return nil }
+        let size = CGSize(width: 120, height: 120)
+        let renderer = UIGraphicsImageRenderer(size: size)
+        let resized = renderer.image { _ in
+            image.draw(in: CGRect(origin: .zero, size: size))
+        }
+        return resized.pngData()
+    }
+
     /// 統一依據高精度插值時鐘重新計算當前歌詞行索引，並同步推播至各引擎
     private func refreshCurrentLineIndex(forceSync: Bool = false) {
         let accurateTimeMs = interpolatedPlaybackTimeMs()
@@ -478,6 +762,9 @@ public final class AppleMusicMonitor: ObservableObject {
 
     // MARK: - 點擊歌詞行跳轉播放進度
     public func seek(toMs targetLineTimeMs: Int) {
+        // Mode Spotify: lompat posisi lagu belum didukung (butuh Premium + izin tambahan)
+        guard playbackSource == .appleMusic else { return }
+
         let rawMs = targetLineTimeMs - globalOffsetMs - currentLyrics.offsetMs
         let targetSec = max(0.0, Double(rawMs) / 1000.0)
         musicPlayer.currentPlaybackTime = targetSec
