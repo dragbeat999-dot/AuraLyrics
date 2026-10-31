@@ -5,9 +5,10 @@ import UIKit
 
 // MARK: - Konfigurasi Spotify
 public enum SpotifyConfig {
-    static let placeholderClientID = "6a71e3653d88426396334ef290e7e894"
+    // Teks ini hanya untuk pengecekan sistem, jangan disamakan dengan Client ID asli
+    static let placeholderClientID = "YOUR_SPOTIFY_CLIENT_ID_HERE"
 
-    /// GANTI teks di bawah ini dengan Client ID dari Spotify Developer Dashboard
+    /// Client ID asli milikmu dari Spotify Developer Dashboard
     public static let clientID = "6a71e3653d88426396334ef290e7e894"
 
     /// Harus sama persis dengan Redirect URI yang terdaftar di dashboard
