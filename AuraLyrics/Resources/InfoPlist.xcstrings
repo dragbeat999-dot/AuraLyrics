@@ -3,13 +3,7 @@
   "strings" : {
     "CFBundleDisplayName" : {
       "localizations" : {
-        "en" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AuraLyrics"
-          }
-        },
-        "zh-Hant" : {
+        "id" : {
           "stringUnit" : {
             "state" : "translated",
             "value" : "AuraLyrics"
@@ -19,48 +13,30 @@
     },
     "NSAppleMusicUsageDescription" : {
       "localizations" : {
-        "en" : {
+        "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AuraLyrics requires media library access to read the currently playing song title and playback progress to synchronize lyrics for you."
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AuraLyrics 需要存取媒體庫資料以讀取當前播放中的音樂名稱與播放進度，進而為你同步顯示歌詞。"
+            "value" : "AuraLyrics memerlukan akses pustaka media untuk membaca judul lagu yang sedang diputar dan progres pemutaran agar dapat menyinkronkan lirik untuk Anda."
           }
         }
       }
     },
     "NSLocationAlwaysAndWhenInUseUsageDescription" : {
       "localizations" : {
-        "en" : {
+        "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AuraLyrics requires background location permission to maintain real-time lyrics synchronization on the Lock Screen and Dynamic Island (uses ultra-low power rough state keep-alive only, and does not collect or upload location data)."
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AuraLyrics 需要背景定位權限以維持鎖定畫面與動態島即時歌詞的連續同步更新（僅使用極低耗電之粗略狀態保活，不收集或上傳任何位置資料）。"
+            "value" : "AuraLyrics memerlukan izin lokasi latar belakang untuk menjaga sinkronisasi lirik real-time di Layar Kunci dan Dynamic Island (hanya menggunakan keep-alive status kasar berdaya sangat rendah, dan tidak mengumpulkan atau mengunggah data lokasi)."
           }
         }
       }
     },
     "NSLocationWhenInUseUsageDescription" : {
       "localizations" : {
-        "en" : {
+        "id" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "AuraLyrics requires background location permission to maintain real-time lyrics synchronization on the Lock Screen and Dynamic Island (uses ultra-low power rough state keep-alive only, and does not collect or upload location data)."
-          }
-        },
-        "zh-Hant" : {
-          "stringUnit" : {
-            "state" : "translated",
-            "value" : "AuraLyrics 需要背景定位權限以維持鎖定畫面與動態島即時歌詞的連續同步更新（僅使用極低耗電之粗略狀態保活，不收集或上傳任何位置資料）。"
+            "value" : "AuraLyrics memerlukan izin lokasi latar belakang untuk menjaga sinkronisasi lirik real-time di Layar Kunci dan Dynamic Island (hanya menggunakan keep-alive status kasar berdaya sangat rendah, dan tidak mengumpulkan atau mengunggah data lokasi)."
           }
         }
       }
