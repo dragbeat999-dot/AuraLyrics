@@ -8,6 +8,9 @@ struct NowPlayingView: View {
     @ObservedObject var envDetector = RuntimeEnvironmentDetector.shared
     @ObservedObject var pipEngine = PiPLyricsEngine.shared
     @ObservedObject var liveActivityEngine = LiveActivityLyricsEngine.shared
+    
+    // --- STATE OBJECT UNTUK SHAZAM ---
+    @StateObject private var shazam = ShazamLyricsRecognizer.shared
 
     @Environment(\.accessibilityReduceTransparency) private var reduceTransparency
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
@@ -43,9 +46,10 @@ struct NowPlayingView: View {
                 // MARK: - 內容層：可滾動穿透之歌詞清單
                 lyricsScrollView
 
-                // MARK: - 內容頂層：右上角三顆完全獨立放大的 Liquid Glass 圓形按鈕
+                // MARK: - 內容頂層：右上角按鈕
                 HStack(spacing: 12) {
-                    translateButton // <--- TOMBOL TERJEMAHAN (TANPA MERAH)
+                    shazamButton // <--- TOMBOL SHAZAM BARU
+                    translateButton 
                     pipIndependentButton
                     moreMenuIndependentButton
                 }
@@ -87,7 +91,37 @@ struct NowPlayingView: View {
         }
     }
 
-    // MARK: - Tombol Terjemahan (Tanpa Warna Merah, Ada Animasi Loading)
+    // MARK: - Tombol Shazam (Dengar Lagu)
+    private var shazamButton: some View {
+        let buttonDiameter: CGFloat = 40
+        let isListening = shazam.isListening
+        
+        return Button {
+            Task {
+                await shazam.startListening()
+            }
+        } label: {
+            ZStack {
+                if isListening {
+                    ProgressView()
+                        .progressViewStyle(CircularProgressViewStyle(tint: .white))
+                        .scaleEffect(0.8)
+                } else {
+                    Image(systemName: "mic.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundColor(.white)
+                }
+            }
+            .frame(width: buttonDiameter, height: buttonDiameter)
+            .liquidGlassCircle(isActive: isListening, activeTint: .blue)
+            .contentShape(Circle())
+        }
+        .buttonStyle(LiquidSpringButtonStyle(scaleAmount: 0.85))
+        .sensoryFeedback(.impact(weight: .medium), trigger: isListening)
+        .accessibilityLabel("Dengarkan dan Cari Lirik Lagu")
+    }
+
+    // MARK: - Tombol Terjemahan
     private var translateButton: some View {
         let buttonDiameter: CGFloat = 40
         let isTranslating = monitor.isTranslatingLyrics
@@ -284,7 +318,6 @@ struct NowPlayingView: View {
                                         .animation(.easeInOut(duration: 0.35), value: blurRadius(for: index))
                                     }
 
-                                    // MARK: - ANIMASI TERJEMAHAN MUNCUL
                                     if showTranslation, let trans = line.translation, !trans.isEmpty {
                                         Text(trans)
                                             .font(.system(size: 16, weight: .medium, design: .default))
