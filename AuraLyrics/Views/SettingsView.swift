@@ -20,24 +20,24 @@ struct SettingsView: View {
                 // MARK: - Sumber pemutar (Apple Music / Spotify / System)
                 Section {
                     NavigationLink {
-                        SpotifySettingsView()
+                        PlaybackSettingsView() // <-- SUDAH DIGANTI KE FILE BARU
                     } label: {
                         HStack {
                             Label("Sumber pemutar & Spotify", systemImage: "music.note.list")
                             Spacer()
                             
-                            // --- DIPERBARUI: Menampilkan teks sesuai sumber yang dipilih ---
-                            if musicMonitor.playbackSource == .spotify {
+                            // --- PERBAIKAN ERROR COMPILER DISINI ---
+                            if musicMonitor.playbackSource == PlaybackSource.spotify {
                                 Text("Spotify")
                                     .foregroundColor(.secondary)
-                            } else if musicMonitor.playbackSource == .system {
+                            } else if musicMonitor.playbackSource == PlaybackSource.system {
                                 Text("System (YT Music)")
                                     .foregroundColor(.secondary)
                             } else {
                                 Text("Apple Music")
                                     .foregroundColor(.secondary)
                             }
-                            // -------------------------------------------------------------
+                            // ---------------------------------------
                         }
                     }
                 } header: {
