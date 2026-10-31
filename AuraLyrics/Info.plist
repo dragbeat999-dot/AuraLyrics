@@ -22,6 +22,15 @@
     <string>$(CURRENT_PROJECT_VERSION)</string>
     <key>LSRequiresIPhoneOS</key>
     <true/>
+    
+    <!-- KUNCI UNTUK MENGAKTIFKAN BAHASA INDONESIA -->
+    <key>CFBundleLocalizations</key>
+    <array>
+        <string>id</string>
+        <string>zh-Hant</string>
+        <string>en</string>
+    </array>
+    
     <key>UIBackgroundModes</key>
     <array>
         <string>audio</string>
@@ -33,12 +42,15 @@
     <array>
         <string>com.auralyrics.bg.lyrics</string>
     </array>
+    
+    <!-- TEKS IZIN AKSES SUDAH DITERJEMAHKAN KE INDONESIA -->
     <key>NSLocationWhenInUseUsageDescription</key>
-    <string>AuraLyrics 需要背景定位權限以維持鎖定畫面與動態島即時歌詞的連續同步更新（僅使用極低耗電之粗略狀態保活，不收集或上傳任何位置資料）。</string>
+    <string>AuraLyrics memerlukan izin lokasi latar belakang untuk menjaga sinkronisasi lirik real-time di Layar Kunci dan Dynamic Island (hanya menggunakan keep-alive status kasar berdaya sangat rendah, dan tidak mengumpulkan atau mengunggah data lokasi).</string>
     <key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-    <string>AuraLyrics 需要背景定位權限以維持鎖定畫面與動態島即時歌詞的連續同步更新（僅使用極低耗電之粗略狀態保活，不收集或上傳任何位置資料）。</string>
+    <string>AuraLyrics memerlukan izin lokasi latar belakang untuk menjaga sinkronisasi lirik real-time di Layar Kunci dan Dynamic Island (hanya menggunakan keep-alive status kasar berdaya sangat rendah, dan tidak mengumpulkan atau mengunggah data lokasi).</string>
     <key>NSAppleMusicUsageDescription</key>
-    <string>AuraLyrics 需要存取媒體庫資料以讀取當前播放中的音樂名稱與播放進度，進而為你同步顯示歌詞。</string>
+    <string>AuraLyrics memerlukan akses pustaka media untuk membaca judul lagu yang sedang diputar dan progres pemutaran agar dapat menyinkronkan lirik untuk Anda.</string>
+    
     <key>NSSupportsLiveActivities</key>
     <true/>
     <key>NSSupportsLiveActivitiesFrequentUpdates</key>
