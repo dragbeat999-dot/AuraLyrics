@@ -51,6 +51,10 @@
     <key>NSAppleMusicUsageDescription</key>
     <string>AuraLyrics memerlukan akses pustaka media untuk membaca judul lagu yang sedang diputar dan progres pemutaran agar dapat menyinkronkan lirik untuk Anda.</string>
     
+    <!-- KUNCI BARU: IZIN MIKROFON UNTUK SHAZAMKIT -->
+    <key>NSMicrophoneUsageDescription</key>
+    <string>AuraLyrics memerlukan akses mikrofon untuk mendengarkan dan mengenali lagu di sekitar Anda agar dapat menampilkan liriknya secara otomatis.</string>
+    
     <key>NSSupportsLiveActivities</key>
     <true/>
     <key>NSSupportsLiveActivitiesFrequentUpdates</key>
